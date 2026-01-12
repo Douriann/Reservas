@@ -36,3 +36,22 @@ class ServiciosAuxiliares:
             print(f"Error: {e}")
             self.conn.rollback()
             return False
+    # ... (métodos anteriores: obtener_organizaciones, etc.) ...
+
+    def registrar_evento(self, nombre, fecha, lugar, capacidad, precio):
+        """Registra un nuevo evento rápido"""
+        if not self.conn: return False
+        try:
+            cursor = self.conn.cursor()
+            sql = """
+                INSERT INTO eventos (nombre, fecha_evento, lugar, capacidad_total, precio_base, estatus) 
+                VALUES (%s, %s, %s, %s, %s, TRUE)
+            """
+            cursor.execute(sql, (nombre, fecha, lugar, capacidad, precio))
+            self.conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Error evento: {e}")
+            self.conn.rollback()
+            return False

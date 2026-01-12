@@ -8,7 +8,8 @@ class GestorReserva:
     def __init__(self):
         self.conn = obtener_conexion()
 
-    def registrar_reserva_completa(self, asistente: Asistente, org: Organizacion, id_evento: int, id_estado_pendiente: int = 1) -> dict:
+    # Cambia la línea de definición por esta (id_estado ahora es un argumento dinámico):
+    def registrar_reserva_completa(self, asistente: Asistente, org: Organizacion, id_evento: int, id_estado: int) -> dict:
             """
             Retorna un diccionario con resultado y datos.
             Keys: 'exito' (bool), 'mensaje' (str), 'datos_pdf' (dict o None)
@@ -92,13 +93,14 @@ class GestorReserva:
                 """
                 # AQUÍ INSERTAMOS EL PRECIO REAL (precio_evento)
                 cursor.execute(sql_reserva, (
-                    codigo_reserva, id_evento, id_asistente, id_estado_pendiente,
+                    codigo_reserva, id_evento, id_asistente, id_estado,
                     timestamp_actual, numero_asiento, precio_evento, True
                 ))
 
                 self.conn.commit()
                 cursor.close()
 
+                nombre_estado = "Confirmado / Pagado" if id_estado == 3 else "Pendiente por Pagar"
                 # --- RETORNO DE DATOS COMPLETOS PARA EL PDF ---
                 datos_para_reporte = {
                     "codigo": codigo_reserva,
@@ -110,7 +112,7 @@ class GestorReserva:
                     "asistente_nombre": asistente.nombre_completo(),
                     "asistente_cedula": asistente.cedula,
                     "organizacion": org.nombre_empresa,
-                    "estado_pago": "Pendiente por Pagar" 
+                    "estado_pago": nombre_estado 
                 }
 
                 return {"exito": True, "mensaje": "Reserva Exitosa", "datos_pdf": datos_para_reporte}
