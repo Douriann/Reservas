@@ -1,0 +1,21 @@
+# --- Archivos de Sistema y Entorno ---
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+env/
+
+# --- IDEs (VS Code, Pycharm, etc) ---
+.vscode/
+.idea/
+
+# --- Reportes y Archivos Generados ---
+# Ignoramos todo el contenido de la carpeta reportes
+reportes/*
+# Pero mantenemos un archivo vacío .gitkeep para que Git sepa que la carpeta existe
+!reportes/.gitkeep
+
+# --- Códigos QR temporales (si se generan fuera de reportes) ---
+*.png
+*.jpg
