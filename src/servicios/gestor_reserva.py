@@ -120,6 +120,42 @@ class GestorReserva:
             except Exception as e:
                 self.conn.rollback()
                 return {"exito": False, "mensaje": f"Error: {e}", "datos_pdf": None}
+            
+    # ... (Otros métodos anteriores) ...
+
+    def obtener_datos_asistente(self, cedula: str):
+        """
+        Busca si una cédula ya existe en la base de datos.
+        Retorna un diccionario con los datos o None.
+        """
+        if not self.conn: return None
+        
+        try:
+            cursor = self.conn.cursor()
+            # Buscamos datos personales y el ID de su empresa
+            sql = """
+                SELECT nombre, apellido_paterno, apellido_materno, email, telefono, puesto_cargo, id_organizacion 
+                FROM asistentes 
+                WHERE cedula = %s
+            """
+            cursor.execute(sql, (cedula,))
+            row = cursor.fetchone()
+            cursor.close()
+
+            if row:
+                return {
+                    "nombre": row[0],
+                    "apellido_p": row[1],
+                    "apellido_m": row[2] if row[2] else "",
+                    "email": row[3],
+                    "telefono": row[4] if row[4] else "",
+                    "cargo": row[5] if row[5] else "",
+                    "id_org": row[6]
+                }
+            return None
+        except Exception as e:
+            print(f"Error buscando asistente: {e}")
+            return None
 
     def __del__(self):
         if self.conn:
