@@ -1,0 +1,1 @@
+pip install customtkinter psycopg2 reportlab qrcode[pil]
