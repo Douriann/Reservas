@@ -17,6 +17,7 @@ class VistaInformacion(ctk.CTkFrame):
         
         self.lista_orgs = [] 
         self.lista_eventos = []
+        self.lista_metodos_pago = [] # Lista nueva para pagos
 
         # Título
         ctk.CTkLabel(self, text="Registro y Solicitud de Reserva", font=("Roboto", 24, "bold")).pack(anchor="w", pady=(0, 20))
@@ -24,37 +25,29 @@ class VistaInformacion(ctk.CTkFrame):
         # --- FORMULARIO ---
         form_frame = ctk.CTkFrame(self)
         form_frame.pack(fill="x", pady=10)
-        
-        # Configuración de Grid: Hacemos que las 3 columnas tengan el mismo peso
         form_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         # --- FILA 0: CÉDULA Y BÚSQUEDA ---
-        # Frame contenedor transparente que ocupará toda la celda 0
         frame_cedula = ctk.CTkFrame(form_frame, fg_color="transparent")
-        frame_cedula.grid(row=0, column=0, padx=10, pady=10, sticky="ew") # sticky="ew" es clave para estirar
+        frame_cedula.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
         
-        # 1. Ponemos el BOTÓN primero pero pegado a la derecha
         self.btn_buscar = ctk.CTkButton(frame_cedula, text="🔍", width=40, fg_color="#FF9800", hover_color="#F57C00", command=self.buscar_cedula)
-        self.btn_buscar.pack(side="right", padx=(5, 0)) # side="right" asegura que quede al final
+        self.btn_buscar.pack(side="right", padx=(5, 0))
 
-        # 2. El ENTRY ocupa todo el espacio restante ("fill x")
         self.entry_cedula = ctk.CTkEntry(frame_cedula, placeholder_text="Cédula * (V-12345678)")
         self.entry_cedula.pack(side="left", fill="x", expand=True) 
 
-        # Resto de campos personales (sin cambios, solo asegurando uniformidad)
+        # Resto de campos
         self.entry_nombre = ctk.CTkEntry(form_frame, placeholder_text="Nombre *")
         self.entry_nombre.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-        
         self.entry_apellido = ctk.CTkEntry(form_frame, placeholder_text="Apellido Paterno *")
         self.entry_apellido.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
 
         # Fila 1
         self.entry_apellido_mat = ctk.CTkEntry(form_frame, placeholder_text="Apellido Materno")
         self.entry_apellido_mat.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
-        
         self.entry_email = ctk.CTkEntry(form_frame, placeholder_text="Correo Electrónico *")
         self.entry_email.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        
         self.entry_telefono = ctk.CTkEntry(form_frame, placeholder_text="Teléfono")
         self.entry_telefono.grid(row=1, column=2, padx=10, pady=10, sticky="ew")
 
@@ -80,15 +73,27 @@ class VistaInformacion(ctk.CTkFrame):
         ctk.CTkButton(select_frame, text="+", width=30, command=self.abrir_popup_evento).pack(side="left", padx=5)
 
         # --- OPCIONES DE PAGO ---
-        pago_frame = ctk.CTkFrame(self, fg_color="transparent")
-        pago_frame.pack(fill="x", pady=10)
+        self.pago_frame = ctk.CTkFrame(self, fg_color="transparent") # Lo hacemos self para acceder
+        self.pago_frame.pack(fill="x", pady=10)
         
-        ctk.CTkLabel(pago_frame, text="Estado del Pago:", font=("Roboto", 14, "bold")).pack(side="left", padx=10)
+        ctk.CTkLabel(self.pago_frame, text="Estado del Pago:", font=("Roboto", 14, "bold")).pack(side="left", padx=10)
+        
         self.var_estado_pago = ctk.IntVar(value=1)
-        self.radio_pendiente = ctk.CTkRadioButton(pago_frame, text="Pendiente por Pagar", variable=self.var_estado_pago, value=1)
+        
+        # Agregamos command=self.toggle_pago_ui a los radios para detectar cambios
+        self.radio_pendiente = ctk.CTkRadioButton(self.pago_frame, text="Pendiente por Pagar", variable=self.var_estado_pago, value=1, command=self.toggle_pago_ui)
         self.radio_pendiente.pack(side="left", padx=20)
-        self.radio_pagado = ctk.CTkRadioButton(pago_frame, text="Pago Inmediato (Confirmar)", variable=self.var_estado_pago, value=3)
+        
+        self.radio_pagado = ctk.CTkRadioButton(self.pago_frame, text="Pago Inmediato (Confirmar)", variable=self.var_estado_pago, value=3, command=self.toggle_pago_ui)
         self.radio_pagado.pack(side="left", padx=20)
+
+        # --- COMBOBOX DE MÉTODOS DE PAGO (OCULTO AL INICIO) ---
+        # Creamos un frame interno para que el combo y su etiqueta aparezcan juntos
+        self.frame_metodo_pago = ctk.CTkFrame(self.pago_frame, fg_color="transparent")
+        
+        ctk.CTkLabel(self.frame_metodo_pago, text="Método:").pack(side="left", padx=5)
+        self.combo_metodo_pago = ctk.CTkComboBox(self.frame_metodo_pago, width=180)
+        self.combo_metodo_pago.pack(side="left", padx=5)
 
         # Botón de Acción
         self.btn_guardar = ctk.CTkButton(self, text="Registrar y Generar Comprobante", height=40, font=("Roboto", 14, "bold"), command=self.procesar_registro)
@@ -102,14 +107,11 @@ class VistaInformacion(ctk.CTkFrame):
         
         self.busqueda_realizada = False
         self.cargar_combos()
-        
-        # Estado Inicial: Deshabilitados (Ahora sí funcionará porque combo_org ya existe)
         self.cambiar_estado_campos("disabled")
 
     def cambiar_estado_campos(self, estado):
         for campo in self.campos_personales:
             campo.configure(state=estado)
-        
         self.combo_org.configure(state=estado)
         self.btn_add_org.configure(state=estado)
 
@@ -118,7 +120,7 @@ class VistaInformacion(ctk.CTkFrame):
             campo.delete(0, 'end')
 
     def cargar_combos(self):
-        # Organizaciones
+        # Org
         datos_org = self.aux_service.obtener_organizaciones()
         self.lista_orgs = datos_org 
         nombres_org = [x[1] for x in datos_org]
@@ -134,6 +136,13 @@ class VistaInformacion(ctk.CTkFrame):
         if nombres_evt: self.combo_evento.set(nombres_evt[0])
         else: self.combo_evento.set("")
 
+        # Métodos de Pago
+        datos_pago = self.aux_service.obtener_metodos_pago()
+        self.lista_metodos_pago = datos_pago
+        nombres_pago = [x[1] for x in datos_pago]
+        self.combo_metodo_pago.configure(values=nombres_pago)
+        if nombres_pago: self.combo_metodo_pago.set(nombres_pago[0])
+
     def abrir_popup_org(self):
         VentanaNuevaOrganizacion(self, self.cargar_combos)
     
@@ -141,18 +150,14 @@ class VistaInformacion(ctk.CTkFrame):
         VentanaNuevoEvento(self, self.cargar_combos)
 
     def buscar_cedula(self):
+        # ... (Igual que antes) ...
         cedula = self.entry_cedula.get().strip()
         if not cedula:
             messagebox.showwarning("Atención", "Ingrese una cédula para buscar.")
             return
-
-        # Buscamos en BD
         datos = self.gestor_reserva.obtener_datos_asistente(cedula)
-        
-        # Habilitamos y limpiamos
         self.cambiar_estado_campos("normal")
         self.limpiar_campos_personales()
-
         if datos:
             messagebox.showinfo("Encontrado", f"El asistente ya existe.\nSe cargaron sus datos.")
             self.entry_nombre.insert(0, datos["nombre"])
@@ -161,20 +166,25 @@ class VistaInformacion(ctk.CTkFrame):
             self.entry_email.insert(0, datos["email"])
             self.entry_telefono.insert(0, datos["telefono"])
             self.entry_cargo.insert(0, datos["cargo"])
-            
-            # Seleccionar organización previa
             id_org_prev = datos["id_org"]
             nombre_org = next((x[1] for x in self.lista_orgs if x[0] == id_org_prev), None)
-            if nombre_org:
-                self.combo_org.set(nombre_org)
+            if nombre_org: self.combo_org.set(nombre_org)
         else:
             messagebox.showinfo("Nuevo", "Cédula no registrada.\nPor favor complete los datos.")
-        
         self.busqueda_realizada = True
+
+    # --- NUEVA LÓGICA DE UI DE PAGO ---
+    def toggle_pago_ui(self):
+        """Muestra u oculta el combo de pagos según el radio button"""
+        estado = self.var_estado_pago.get()
+        if estado == 3: # Pago Inmediato
+            self.frame_metodo_pago.pack(side="left", padx=10)
+        else:
+            self.frame_metodo_pago.pack_forget()
 
     def procesar_registro(self):
         if not self.busqueda_realizada:
-            messagebox.showwarning("Alto", "Debe buscar la cédula primero para validar si el asistente ya existe.")
+            messagebox.showwarning("Alto", "Debe buscar la cédula primero.")
             return
 
         cedula = self.entry_cedula.get().strip()
@@ -187,6 +197,18 @@ class VistaInformacion(ctk.CTkFrame):
         if not cedula or not nombre or not apellido_p or not email or not org_sel or not evt_sel:
             messagebox.showwarning("Incompleto", "Llene los campos obligatorios (*).")
             return
+
+        # 0.5 Validar Pago si es Inmediato
+        idx_metodo_pago = None
+        estado_seleccionado = self.var_estado_pago.get()
+        
+        if estado_seleccionado == 3: # Inmediato
+            metodo_sel = self.combo_metodo_pago.get()
+            if not metodo_sel:
+                messagebox.showwarning("Pago", "Seleccione un método de pago.")
+                return
+            # Buscar ID del método
+            idx_metodo_pago = next((x[0] for x in self.lista_metodos_pago if x[1] == metodo_sel), None)
 
         self.btn_guardar.configure(state="disabled", text="Procesando...")
         self.update_idletasks()
@@ -207,10 +229,13 @@ class VistaInformacion(ctk.CTkFrame):
                 puesto_cargo=self.entry_cargo.get().strip(), id_organizacion=idx_org
             )
 
-            estado_seleccionado = self.var_estado_pago.get()
-            
+            # --- LLAMADA ACTUALIZADA ---
             respuesta = self.gestor_reserva.registrar_reserva_completa(
-                asistente_modelo, org_modelo, idx_evt, id_estado=estado_seleccionado
+                asistente_modelo, 
+                org_modelo, 
+                idx_evt, 
+                id_estado=estado_seleccionado, 
+                id_metodo_pago=idx_metodo_pago # Enviamos el pago
             )
 
             if respuesta["exito"]:
@@ -222,6 +247,7 @@ class VistaInformacion(ctk.CTkFrame):
                     self.entry_cedula.delete(0, 'end')
                     self.limpiar_campos_personales()
                     self.var_estado_pago.set(1)
+                    self.toggle_pago_ui() # Resetear UI de pago
                     
                     self.cambiar_estado_campos("disabled")
                     self.busqueda_realizada = False

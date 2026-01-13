@@ -9,7 +9,7 @@ class GestorReserva:
         self.conn = obtener_conexion()
 
     # Cambia la línea de definición por esta (id_estado ahora es un argumento dinámico):
-    def registrar_reserva_completa(self, asistente: Asistente, org: Organizacion, id_evento: int, id_estado: int) -> dict:
+    def registrar_reserva_completa(self, asistente: Asistente, org: Organizacion, id_evento: int, id_estado: int, id_metodo_pago: int = None) -> dict:
             """
             Retorna un diccionario con resultado y datos.
             Keys: 'exito' (bool), 'mensaje' (str), 'datos_pdf' (dict o None)
@@ -76,11 +76,10 @@ class GestorReserva:
                     self.conn.rollback()
                     return {"exito": False, "mensaje": f"El asistente ya está registrado.\nCódigo: {existe[0]}", "datos_pdf": None}
 
-                # --- PASO 3: CREAR RESERVA ---
+    # --- PASO 3: CREAR RESERVA (Igual que antes) ---
                 timestamp_actual = datetime.now()
                 codigo_reserva = f"RES-{int(timestamp_actual.timestamp())}"
                 
-                # Calcular Asiento
                 sql_count = "SELECT COUNT(*) FROM reservas WHERE id_evento = %s"
                 cursor.execute(sql_count, (id_evento,))
                 count = cursor.fetchone()[0]
@@ -89,19 +88,33 @@ class GestorReserva:
                 sql_reserva = """
                     INSERT INTO reservas (codigo_reserva, id_evento, id_asistente, id_estado_reserva, 
                                         fecha_solicitud, numero_asiento, total_a_pagar, estatus)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_reserva
                 """
-                # AQUÍ INSERTAMOS EL PRECIO REAL (precio_evento)
+                # NOTA: Agregué RETURNING id_reserva arriba para obtener el ID numérico generado
                 cursor.execute(sql_reserva, (
                     codigo_reserva, id_evento, id_asistente, id_estado,
                     timestamp_actual, numero_asiento, precio_evento, True
                 ))
+                id_reserva_creada = cursor.fetchone()[0]
+
+                # --- PASO 4 (NUEVO): REGISTRAR PAGO (Si aplica) ---
+                # Si el usuario seleccionó "Pago Inmediato" y envió un método de pago
+                if id_estado == 3 and id_metodo_pago is not None:
+                    sql_pago = """
+                        INSERT INTO pagos (id_reserva, id_metodo_pago, monto, fecha_pago, referencia_bancaria, comprobante_emitido, estatus)
+                        VALUES (%s, %s, %s, %s, NULL, TRUE, TRUE)
+                    """
+                    # Referencia bancaria va NULL por ahora como pediste
+                    cursor.execute(sql_pago, (
+                        id_reserva_creada, id_metodo_pago, precio_evento, timestamp_actual
+                    ))
 
                 self.conn.commit()
                 cursor.close()
 
+                # ... (Resto del retorno de datos igual que antes) ...
                 nombre_estado = "Confirmado / Pagado" if id_estado == 3 else "Pendiente por Pagar"
-                # --- RETORNO DE DATOS COMPLETOS PARA EL PDF ---
+                
                 datos_para_reporte = {
                     "codigo": codigo_reserva,
                     "fecha_solicitud": timestamp_actual.strftime("%Y-%m-%d %H:%M"),

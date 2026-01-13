@@ -55,3 +55,14 @@ class ServiciosAuxiliares:
             print(f"Error evento: {e}")
             self.conn.rollback()
             return False
+        
+    # ... (métodos anteriores) ...
+
+    def obtener_metodos_pago(self):
+        """Retorna lista de tuplas (id, nombre) de métodos de pago activos"""
+        if not self.conn: return []
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id_metodo_pago, nombre FROM metodos_pago WHERE estatus = TRUE ORDER BY nombre ASC")
+        datos = cursor.fetchall()
+        cursor.close()
+        return datos
