@@ -10,10 +10,7 @@ class GestorReserva:
 
     # Cambia la línea de definición por esta (id_estado ahora es un argumento dinámico):
     def registrar_reserva_completa(self, asistente: Asistente, org: Organizacion, id_evento: int, id_estado: int, id_metodo_pago: int = None) -> dict:
-            """
-            Retorna un diccionario con resultado y datos.
-            Keys: 'exito' (bool), 'mensaje' (str), 'datos_pdf' (dict o None)
-            """
+
             if not self.conn:
                 return {"exito": False, "mensaje": "Sin conexión BD", "datos_pdf": None}
 
@@ -21,7 +18,6 @@ class GestorReserva:
                 cursor = self.conn.cursor()
                 
                 # --- PASO 0: OBTENER DATOS DEL EVENTO (PRECIO Y FECHA) ---
-                # Soluciona el problema del $0.00 y la fecha genérica
                 sql_evento = "SELECT precio_base, fecha_evento, nombre FROM eventos WHERE id_evento = %s"
                 cursor.execute(sql_evento, (id_evento,))
                 datos_evento = cursor.fetchone()
@@ -76,7 +72,7 @@ class GestorReserva:
                     self.conn.rollback()
                     return {"exito": False, "mensaje": f"El asistente ya está registrado.\nCódigo: {existe[0]}", "datos_pdf": None}
 
-    # --- PASO 3: CREAR RESERVA (Igual que antes) ---
+    # --- PASO 3: CREAR RESERVA ---
                 timestamp_actual = datetime.now()
                 codigo_reserva = f"RES-{int(timestamp_actual.timestamp())}"
                 
@@ -90,7 +86,7 @@ class GestorReserva:
                                         fecha_solicitud, numero_asiento, total_a_pagar, estatus)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_reserva
                 """
-                # NOTA: Agregué RETURNING id_reserva arriba para obtener el ID numérico generado
+
                 cursor.execute(sql_reserva, (
                     codigo_reserva, id_evento, id_asistente, id_estado,
                     timestamp_actual, numero_asiento, precio_evento, True
@@ -112,7 +108,7 @@ class GestorReserva:
                 self.conn.commit()
                 cursor.close()
 
-                # ... (Resto del retorno de datos igual que antes) ...
+
                 nombre_estado = "Confirmado / Pagado" if id_estado == 3 else "Pendiente por Pagar"
                 
                 datos_para_reporte = {
@@ -134,7 +130,6 @@ class GestorReserva:
                 self.conn.rollback()
                 return {"exito": False, "mensaje": f"Error: {e}", "datos_pdf": None}
             
-    # ... (Otros métodos anteriores) ...
 
     def obtener_datos_asistente(self, cedula: str):
         """

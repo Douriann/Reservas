@@ -29,20 +29,10 @@ def obtener_conexion():
         return conexion
 
     except psycopg2.Error as e:
-        print(f"❌ Error al conectar a la base de datos: {e}")
+        print(f"Error al conectar a la base de datos: {e}")
         return None
 
 def cerrar_conexion(conexion):
     """Cierra la conexión si está abierta."""
     if conexion:
         conexion.close()
-        print("🔒 Conexión cerrada correctamente.")
-
-# --- BLOQUE DE PRUEBA ---
-# Esto solo se ejecuta si corres este archivo directamente, no si lo importas.
-if __name__ == "__main__":
-    print("Probando conexión...")
-    conn = obtener_conexion()
-    if conn:
-        print(f"✅ ¡Conexión exitosa a la base de datos '{os.getenv('DB_NAME')}'!")
-        cerrar_conexion(conn)
