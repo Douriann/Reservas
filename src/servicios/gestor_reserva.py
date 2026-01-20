@@ -100,7 +100,6 @@ class GestorReserva:
                         INSERT INTO pagos (id_reserva, id_metodo_pago, monto, fecha_pago, referencia_bancaria, comprobante_emitido, estatus)
                         VALUES (%s, %s, %s, %s, NULL, TRUE, TRUE)
                     """
-                    # Referencia bancaria va NULL por ahora como pediste
                     cursor.execute(sql_pago, (
                         id_reserva_creada, id_metodo_pago, precio_evento, timestamp_actual
                     ))
